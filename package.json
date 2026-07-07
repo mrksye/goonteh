@@ -26,6 +26,18 @@
     "vue"
   ],
   "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "solid-js": "^1.8.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "vue": "^3.4.0"
+  },
   "files": [
     "core.ts",
     "native.ts",

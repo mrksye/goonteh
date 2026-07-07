@@ -1,5 +1,5 @@
 import { defineComponent, h, inject, onBeforeUnmount, onMounted, provide, ref, render, type PropType, type VNode } from 'vue'
-import { createGoontehCore, type GoontehConfig, type GoontehCore } from './core'
+import { createGoontehCore, type DropzoneHandle, type GoontehConfig, type GoontehCore } from './core'
 
 /**
  * goonteh — Vue 3 adapter.
@@ -85,7 +85,7 @@ export const Drop = defineComponent({
   setup(props, { slots }) {
     const { core, version } = useCtx()
     const el = ref<HTMLElement>()
-    const handle = ref<{ isOver: () => boolean } | null>(null)
+    const handle = ref<DropzoneHandle | null>(null)
     onMounted(() => {
       if (!el.value) return
       handle.value = core.dropzone(el.value, {
