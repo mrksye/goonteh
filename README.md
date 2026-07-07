@@ -183,7 +183,7 @@ Zones may nest; the innermost matching zone under the pointer wins. The ghost is
 
 ## Status
 
-Early (0.0.x) and lightly tested — expect rough edges. Ships TypeScript/TSX source; the core is plain TS and the framework adapters are compiled by your framework-aware bundler. A prebuilt `dist` is planned before a stable release. The React Native adapter is **experimental**.
+Early (0.1.x) and lightly tested — expect rough edges. Ships TypeScript/TSX source; the core is plain TS and the framework adapters are compiled by your framework-aware bundler. A prebuilt `dist` is planned before a stable release. The React Native adapter is **experimental**.
 
 ## Contributing
 

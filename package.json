@@ -1,6 +1,6 @@
 {
   "name": "goonteh",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Tiny pointer-based drag-and-drop that works on touch and never shows the no-drop cursor. Framework-agnostic core plus SolidJS, React, Vue, native DOM, and React Native adapters.",
   "type": "module",
   "license": "MIT",
