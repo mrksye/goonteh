@@ -7,12 +7,12 @@
   "author": "mrksye",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrksye/gunte.git"
+    "url": "git+https://github.com/mrksye/goonteh.git"
   },
   "bugs": {
-    "url": "https://github.com/mrksye/gunte/issues"
+    "url": "https://github.com/mrksye/goonteh/issues"
   },
-  "homepage": "https://github.com/mrksye/gunte#readme",
+  "homepage": "https://github.com/mrksye/goonteh#readme",
   "keywords": [
     "drag-and-drop",
     "dnd",
