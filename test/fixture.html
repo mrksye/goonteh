@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>goonteh test fixture</title>
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      #src { position: absolute; left: 50px; top: 50px; width: 100px; height: 40px; background: #8cf; }
+      #nodrag { position: absolute; right: 0; top: 0; width: 24px; height: 24px; background: #f88; }
+      #zone { position: absolute; left: 300px; top: 50px; width: 200px; height: 120px; background: #cfc; }
+      #outer { position: absolute; left: 200px; top: 250px; width: 220px; height: 160px; background: #ddd; }
+      #inner { position: absolute; left: 40px; top: 40px; width: 90px; height: 50px; background: #fc8; }
+    </style>
+  </head>
+  <body>
+    <div id="src" data-testid="src">drag me<div id="nodrag" data-goonteh-nodrag></div></div>
+    <div id="zone" data-testid="zone">drop here</div>
+    <div id="outer" data-testid="outer">outer<div id="inner" data-testid="inner">inner</div></div>
+    <script type="module" src="./fixture.ts"></script>
+  </body>
+</html>
