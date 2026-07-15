@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createGoontehCore, type GoontehConfig, type GoontehCore, type Point } from './core'
 
@@ -8,10 +8,11 @@ import { createGoontehCore, type GoontehConfig, type GoontehCore, type Point } f
  *
  * Thin React bindings over the framework-agnostic core (`./core`): a provider that owns one
  * engine, `<Grab>` for draggable sources, and `<Drop>` for targets. Latest props are read through
- * refs so the stable core closures always see current values. `react` / `react-dom` are optional
- * peer dependencies.
+ * refs so the stable core closures always see current values. Drag state reaches components through
+ * `useSyncExternalStore` subscriptions, so a pointer-move only re-renders what actually reads it (the
+ * context itself is stable). `react` / `react-dom` are optional peer dependencies.
  */
-type Ctx = { core: GoontehCore; version: number }
+type Ctx = { core: GoontehCore }
 const GoontehContext = createContext<Ctx | null>(null)
 
 /** Root provider. Create it once, above every `<Grab>`/`<Drop>`. */
@@ -19,15 +20,9 @@ export function GoontehProvider({ children, config }: { children: ReactNode; con
   const coreRef = useRef<GoontehCore>()
   if (!coreRef.current) coreRef.current = createGoontehCore(config)
   const core = coreRef.current
-  const [version, setVersion] = useState(0)
-  useEffect(() => {
-    const unsub = core.onChange(() => setVersion((v) => v + 1))
-    return () => {
-      unsub()
-      core.destroy()
-    }
-  }, [core])
-  return <GoontehContext.Provider value={{ core, version }}>{children}</GoontehContext.Provider>
+  useEffect(() => () => core.destroy(), [core])
+  const ctx = useMemo(() => ({ core }), [core]) // stable — never changes per drag, so consumers don't re-render on move
+  return <GoontehContext.Provider value={ctx}>{children}</GoontehContext.Provider>
 }
 
 function useCtx(): Ctx {
@@ -39,12 +34,22 @@ function useCtx(): Ctx {
 export type ActiveDrag = { kind: string; payload: unknown } | undefined
 
 /**
- * Live drag state, recomputed on every drag change (the provider bumps `version`). Read `active` to
- * know what is being dragged and `point` for where, e.g. to show a reorder-vs-combine affordance.
+ * Live drag state. Subscribes to the engine, so only components that call this re-render as the drag
+ * moves. Read `active` to know what is being dragged and `point` for where (reorder-vs-combine, etc.).
  */
 export function useGoonteh(): { dragging: boolean; active: ActiveDrag; point: Point | undefined } {
-  const { core, version } = useCtx()
-  return useMemo(() => ({ dragging: core.dragging(), active: core.active(), point: core.point() }), [core, version])
+  const { core } = useCtx()
+  const cache = useRef<{ dragging: boolean; active: ActiveDrag; point: Point | undefined }>({ dragging: false, active: undefined, point: undefined })
+  // getSnapshot must return a stable reference while unchanged (else useSyncExternalStore loops).
+  const snapshot = () => {
+    const prev = cache.current
+    const dragging = core.dragging()
+    const active = core.active()
+    const point = core.point()
+    if (prev.dragging === dragging && prev.active?.kind === active?.kind && prev.active?.payload === active?.payload && prev.point?.x === point?.x && prev.point?.y === point?.y) return prev
+    return (cache.current = { dragging, active, point })
+  }
+  return useSyncExternalStore(core.onChange, snapshot, snapshot)
 }
 
 /** A draggable source. `ghost` is rendered into a detached element at grab time via a React root. */
@@ -131,7 +136,12 @@ export function Drop({
     handle.current = h
     return () => h.destroy()
   }, [core])
-  const over = handle.current?.isOver() ?? false
+  // Subscribe just for this zone's hover flag — a boolean, so it only re-renders when it flips.
+  const over = useSyncExternalStore(
+    core.onChange,
+    () => handle.current?.isOver() ?? false,
+    () => false,
+  )
   return (
     <div ref={ref} className={`${className ?? ''} ${over ? (activeClass ?? '') : ''}`}>
       {children}
