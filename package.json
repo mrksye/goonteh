@@ -1,6 +1,6 @@
 {
   "name": "goonteh",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Tiny pointer-based drag-and-drop that works on touch and never shows the no-drop cursor. Framework-agnostic core plus SolidJS, React, Vue, Svelte, native DOM, and React Native adapters.",
   "type": "module",
   "license": "MIT",
@@ -29,12 +29,15 @@
   "sideEffects": false,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build": "rm -rf dist && node build.mjs && tsc -p tsconfig.build.json",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "esbuild": "^0.28.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "solid-js": "^1.8.0",
@@ -44,6 +47,7 @@
     "vue": "^3.4.0"
   },
   "files": [
+    "dist",
     "core.ts",
     "native.ts",
     "solid.tsx",
@@ -53,13 +57,20 @@
     "svelte.ts",
     "index.ts",
     "README.md",
+    "EXAMPLES.md",
     "CONTRIBUTING.md",
     "LICENSE"
   ],
+  "main": "./dist/core.js",
+  "module": "./dist/core.js",
+  "types": "./dist/core.d.ts",
+  "unpkg": "./dist/goonteh.global.js",
+  "jsdelivr": "./dist/goonteh.global.js",
   "exports": {
-    ".": "./index.ts",
-    "./core": "./core.ts",
-    "./native": "./native.ts",
+    ".": { "types": "./dist/core.d.ts", "import": "./dist/core.js" },
+    "./core": { "types": "./dist/core.d.ts", "import": "./dist/core.js" },
+    "./native": { "types": "./dist/native.d.ts", "import": "./dist/native.js" },
+    "./global": "./dist/goonteh.global.js",
     "./solid": "./solid.tsx",
     "./react": "./react.tsx",
     "./react-native": "./react-native.tsx",

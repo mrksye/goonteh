@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>goonteh IIFE global build</title>
+    <style>
+      body { margin: 0; }
+      #src { position: absolute; left: 50px; top: 50px; width: 100px; height: 40px; background: #8cf; }
+      #zone { position: absolute; left: 300px; top: 50px; width: 200px; height: 120px; background: #cfc; }
+    </style>
+  </head>
+  <body>
+    <div id="src">drag me</div>
+    <div id="zone">drop here</div>
+    <!-- exactly how a Google Apps Script HtmlService page (or any bundler-less page) would use it -->
+    <script src="/dist/goonteh.global.js"></script>
+    <script>
+      var g = window.goonteh() // the IIFE exposes the factory as a global
+      window.__drops = []
+      window.__g = g
+      g.grab(document.getElementById('src'), { kind: 'card', payload: { id: 'a1' } })
+      g.drop(document.getElementById('zone'), {
+        accepts: function (k) { return k === 'card' },
+        onDrop: function (payload, kind) { window.__drops.push({ payload: payload, kind: kind }) },
+      })
+    </script>
+  </body>
+</html>

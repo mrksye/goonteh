@@ -13,12 +13,11 @@ Bare hands slip. Put a glove on. `goonteh` reimplements drag-and-drop on **point
 
 goonteh was born while building a construction-site scheduling app, where dragging heavy machinery and resources needed to work reliably on Linux and touch devices.
 
-- 🖐️ Mouse, touch, and pen (pointer events)
-- 🚫 No native no-drop cursor — you own the look
-- 📦 Payloads are plain JS values tagged by a `kind` string (no `dataTransfer` / MIME)
-- 👻 Custom drag ghost that follows the pointer
-- 🕳️ **Lift** the source as you drag — leave a blank hole, or collapse the gap
-- 🔎 **Read the live drag** (`active` / `point`) to drive your own affordances (reorder vs. combine…)
+- 🖐️ Mouse, touch & pen — one pointer-events path
+- 🚫 No native no-drop (🚫) cursor — you own the look in CSS
+- 📄 **No bundler needed** — one `<script>` tag, even inside a Google Apps Script `HtmlService` page
+- 🕳️ **Lift** the source as you drag (leave a blank hole or collapse the gap) with a ghost that follows the pointer
+- 🔎 **Read the live drag** (`active` / `point`) to build your own affordances — reorder vs. combine
 - 🧩 **Framework-agnostic core** + thin adapters — zero deps beyond your framework
 
 ## A primitive, not a framework
@@ -35,6 +34,24 @@ The four words are the whole surface. Each keeps its exact technical meaning, an
 - **`Drop`** — you set it down (a drop target)
 
 Gloves handed out, grab, lift, drop. That's all it does.
+
+## Runs where a framework can't — Google Apps Script, plain HTML, CDN
+
+Because it's tiny and framework-free, the core also ships as a single self-contained IIFE that puts a `goonteh` global on `window` — **no build step, no npm, no bundler**. One `<script>` and you're gripping:
+
+```html
+<script src="https://unpkg.com/goonteh"></script>
+<script>
+  const g = goonteh()
+  g.grab(document.getElementById('card'), { kind: 'card', payload: { id: 'a1' } })
+  g.drop(document.getElementById('lane'), {
+    accepts: (kind) => kind === 'card',
+    onDrop: (payload) => console.log('dropped', payload),
+  })
+</script>
+```
+
+The standout: this works inside a **Google Apps Script `HtmlService`** page — a sandboxed iframe with no bundler and no npm, where heavier drag-and-drop frameworks can't go. Serve it from `unpkg` / `jsdelivr`, or paste `dist/goonteh.global.js` straight into your HTML. A pair of work gloves fits anywhere.
 
 ## Packages / entry points
 

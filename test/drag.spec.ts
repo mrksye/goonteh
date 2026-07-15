@@ -132,3 +132,14 @@ test('nested grabs: the innermost wins', async ({ page }) => {
   expect(await page.evaluate(() => (window as unknown as { __activeKind: () => string | undefined }).__activeKind())).toBe('inner')
   await up(page, INNER)
 })
+
+// The dist IIFE loaded via a plain <script> — the bundler-less / CDN / Google Apps Script path.
+// (Requires `npm run build` first; the fixture loads /dist/goonteh.global.js.)
+test('the IIFE global build drags and drops (paste/CDN/GAS path)', async ({ page }) => {
+  await page.goto('/test/global.html')
+  await page.waitForSelector('#src')
+  expect(await page.evaluate(() => typeof (window as unknown as { goonteh: unknown }).goonteh)).toBe('function')
+  await fullDrag(page)
+  expect(await drops(page)).toEqual([{ payload: { id: 'a1' }, kind: 'card' }])
+  expect(await dragging(page)).toBe(false)
+})
