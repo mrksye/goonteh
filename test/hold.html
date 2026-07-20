@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>goonteh hold-to-drag / crouch fixture</title>
+    <style>
+      body { margin: 0; }
+      #src { position: absolute; left: 0; top: 0; width: 100px; height: 100px; background: #8cf; }
+      #zone { position: absolute; inset: 0; z-index: -1; background: #cfc; }
+    </style>
+  </head>
+  <body>
+    <div id="src">hold me</div>
+    <div id="zone">drop</div>
+    <script type="module" src="./hold.ts"></script>
+  </body>
+</html>

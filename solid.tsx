@@ -42,10 +42,11 @@ export function useGoonteh(): {
   dragging: Accessor<boolean>
   active: Accessor<ActiveDrag>
   point: Accessor<Point | undefined>
+  overEl: Accessor<HTMLElement | undefined>
 } {
   const { core, version } = useCtx()
   const tracked = <T,>(read: () => T): Accessor<T> => () => (version(), read())
-  return { dragging: tracked(core.dragging), active: tracked(core.active), point: tracked(core.point) }
+  return { dragging: tracked(core.dragging), active: tracked(core.active), point: tracked(core.point), overEl: tracked(core.overEl) }
 }
 
 /**
@@ -60,6 +61,10 @@ export function Grab(props: {
   /** How the source looks while dragged: 'hole' (blank gap, no reflow) or 'collapse' (siblings close
    *  up). Omit to leave it in place (copy-style drag). See DraggableOptions.lift. */
   lift?: 'hole' | 'collapse'
+  /** Touch: a still hold has crouched at this point (show a context menu here). Move → drag; release → menu stays. */
+  onCrouch?: (point: Point) => void
+  /** The drag actually began (mouse move, or a move after a touch crouch) — dismiss the menu here. */
+  onLift?: () => void
   class?: string
   children: JSX.Element
 }): JSX.Element {
@@ -72,6 +77,8 @@ export function Grab(props: {
       kind: props.kind,
       disabled: () => !!props.disabled,
       lift: props.lift,
+      onCrouch: props.onCrouch ? (point) => props.onCrouch!(point) : undefined,
+      onLift: props.onLift ? () => props.onLift!() : undefined,
       ghost: () => {
         const container = document.createElement('div')
         dispose = render(() => props.ghost(), container)
@@ -88,7 +95,7 @@ export function Grab(props: {
     })
   })
   return (
-    <div ref={el} class={props.class} style={{ 'touch-action': 'none' }}>
+    <div ref={el} class={props.class}>
       {props.children}
     </div>
   )
@@ -100,6 +107,7 @@ export function Drop(props: {
   onDrop: (payload: unknown, kind: string, point: Point) => void
   class?: string
   activeClass?: string
+  style?: JSX.CSSProperties
   children: JSX.Element
 }): JSX.Element {
   const { core, version } = useCtx()
@@ -118,7 +126,7 @@ export function Drop(props: {
     return zone()?.isOver() ?? false
   }
   return (
-    <div ref={el} class={`${props.class ?? ''} ${over() ? (props.activeClass ?? '') : ''}`}>
+    <div ref={el} class={`${props.class ?? ''} ${over() ? (props.activeClass ?? '') : ''}`} style={props.style}>
       {props.children}
     </div>
   )

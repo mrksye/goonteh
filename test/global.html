@@ -15,7 +15,7 @@
     <!-- exactly how a Google Apps Script HtmlService page (or any bundler-less page) would use it -->
     <script src="/dist/goonteh.global.js"></script>
     <script>
-      var g = window.goonteh() // the IIFE exposes the factory as a global
+      var g = window.goonteh({ holdDelay: 0 }) // the IIFE exposes the factory as a global (holdDelay 0 = move-to-drag)
       window.__drops = []
       window.__g = g
       g.grab(document.getElementById('src'), { kind: 'card', payload: { id: 'a1' } })

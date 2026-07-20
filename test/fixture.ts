@@ -12,7 +12,9 @@ type Win = typeof window & {
 }
 const w = window as Win
 
-const g = goonteh()
+// holdDelay: 0 keeps these mechanics specs move-to-drag on touch (pointer tracking, cancel, teardown,
+// nesting are independent of the hold gate); touch hold-to-drag + crouch is pinned in hold.spec.ts.
+const g = goonteh({ holdDelay: 0 })
 w.__g = g
 w.__drops = []
 w.__throwNext = false

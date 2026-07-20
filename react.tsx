@@ -59,6 +59,8 @@ export function Grab({
   ghost,
   disabled,
   lift,
+  onCrouch,
+  onLift,
   className,
   children,
 }: {
@@ -68,13 +70,17 @@ export function Grab({
   disabled?: boolean
   /** 'hole' (blank gap, no reflow) or 'collapse' (siblings close up); omit to leave in place. */
   lift?: 'hole' | 'collapse'
+  /** Touch: a still hold has crouched at this point (pop a context menu here). Move → drag; release → menu stays. */
+  onCrouch?: (point: Point) => void
+  /** The drag began (mouse move, or a move after a touch crouch) — dismiss the menu here. */
+  onLift?: () => void
   className?: string
   children: ReactNode
 }) {
   const { core } = useCtx()
   const ref = useRef<HTMLDivElement>(null)
-  const latest = useRef({ payload, ghost, disabled, lift })
-  latest.current = { payload, ghost, disabled, lift }
+  const latest = useRef({ payload, ghost, disabled, lift, onCrouch, onLift })
+  latest.current = { payload, ghost, disabled, lift, onCrouch, onLift }
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -84,6 +90,8 @@ export function Grab({
       kind,
       disabled: () => !!latest.current.disabled,
       lift: latest.current.lift,
+      onCrouch: onCrouch ? (point) => latest.current.onCrouch?.(point) : undefined,
+      onLift: () => latest.current.onLift?.(),
       ghost: () => {
         const container = document.createElement('div')
         root = createRoot(container)
@@ -101,7 +109,7 @@ export function Grab({
     }
   }, [core, kind])
   return (
-    <div ref={ref} className={className} style={{ touchAction: 'none' }}>
+    <div ref={ref} className={className}>
       {children}
     </div>
   )

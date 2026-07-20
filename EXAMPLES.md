@@ -1,187 +1,240 @@
-# goonteh — Examples 🧤
+# goonteh examples 🧤
 
-Copy-paste recipes. Each is self-contained; adapt the styling to your app. For the full API see the [README](./README.md).
+Copy-paste recipes. Everything is the same four moves: **`Grab`** a thing, **`Lift`** it (leave a hole or
+collapse the gap), **`Drop`** it — the engine owns the pointer, the ghost, and the cursor; you own the model
+(reorder, combine, decode). Nothing reflows mid-drag; you rearrange on drop.
 
-- [SolidJS: grab, drop, ghost](#solidjs-grab-drop-ghost)
-- [Drag handle (only the handle drags)](#drag-handle-only-the-handle-drags)
-- [Opt-out zones — `data-goonteh-nodrag` (resize handles)](#opt-out-zones--data-goonteh-nodrag-resize-handles)
-- [Reorder **and** combine](#reorder-and-combine)
-- [Reading the live drag](#reading-the-live-drag)
-- [Typed payloads — decode at the boundary](#typed-payloads--decode-at-the-boundary)
-- [Native (vanilla DOM)](#native-vanilla-dom)
-
----
-
-## SolidJS: grab, drop, ghost
-
-Wrap the tree once in a provider, then any `Grab` can drop into any accepting `Drop`.
-
-```tsx
-import { GoontehProvider, Grab, Drop } from 'goonteh/solid'
-
-function Board() {
-  return (
-    <GoontehProvider>
-      <Grab kind="card" payload={{ id: 'a1' }} ghost={() => <span class="chip">Card A1</span>}>
-        <div class="card">Card A1</div>
-      </Grab>
-
-      <Drop
-        accepts={(kind) => kind === 'card'}
-        onDrop={(payload, kind, point) => console.log('dropped', payload, 'at', point)}
-        activeClass="ring-2 ring-sky-400"
-        class="lane"
-      >
-        drop here
-      </Drop>
-    </GoontehProvider>
-  )
-}
-```
-
-`ghost` is a snapshot taken at grab time and follows the pointer (it's `pointer-events: none`, so it never blocks hit-testing). `point` in `onDrop` is the drop position in client coordinates `{ x, y }`.
+- [Grab & Drop — the basics](#basics)
+- [Lift — pick it up for real](#lift)
+- [Crouch — long-press a menu, then drag](#crouch)
+- [Hold-to-drag & scroll on touch](#touch)
+- [Live drag — reorder vs combine](#live)
+- [Drag handles & opt-out zones](#opt-out)
+- [Typed payloads — decode at the drop](#payloads)
+- [Adapters](#adapters) — core / native · Solid · React · Vue · Svelte · React Native
+- [CDN / plain HTML](#cdn)
 
 ---
 
-## Drag handle (only the handle drags)
+## Basics
 
-Make the **handle itself** the `Grab`. The rest of the card is free for text selection, buttons, etc.
-
-```tsx
-<div class="card">
-  <Grab kind="card" payload={{ id }} ghost={() => <span class="chip">{title}</span>}>
-    <span class="handle" title="drag">⠿</span>
-  </Grab>
-  <div class="body">…selectable content, buttons…</div>
-</div>
-```
-
-Nested `Grab`s resolve **innermost-wins**: a handle-grab inside a card-grab starts only the handle.
-
----
-
-## Opt-out zones — `data-goonteh-nodrag` (resize handles)
-
-The inverse of a drag handle: keep the **whole card** draggable, but carve out sub-regions that should act on their own. A pointerdown inside any element carrying `data-goonteh-nodrag` never starts a drag — perfect for resize handles, inline buttons, or sliders that live inside a draggable.
-
-```tsx
-<Grab kind="clip" payload={{ id }} ghost={() => <span class="chip">{title}</span>}>
-  <div class="clip">
-    {title}
-    {/* Grabbing the body moves the clip; grabbing an edge resizes it. */}
-    <span
-      data-goonteh-nodrag
-      class="resize-handle left"
-      onPointerDown={(e) => startResize('l', e)}
-    />
-    <span
-      data-goonteh-nodrag
-      class="resize-handle right"
-      onPointerDown={(e) => startResize('r', e)}
-    />
-  </div>
-</Grab>
-```
-
-```ts
-// A plain pointer-capture resize — goonteh stays out of its way thanks to data-goonteh-nodrag.
-function startResize(edge: 'l' | 'r', e: PointerEvent) {
-  e.stopPropagation()
-  const el = e.currentTarget as HTMLElement
-  const startX = e.clientX
-  el.setPointerCapture(e.pointerId)
-  const move = (ev: PointerEvent) => setWidthFromDelta(edge, ev.clientX - startX)
-  const up = () => {
-    el.releasePointerCapture(e.pointerId)
-    el.removeEventListener('pointermove', move)
-    el.removeEventListener('pointerup', up)
-  }
-  el.addEventListener('pointermove', move)
-  el.addEventListener('pointerup', up)
-}
-```
-
-Works in every adapter (and the raw core) — the check lives in the engine's pointerdown, so any framework benefits just by putting the attribute on the element.
-
----
-
-## Reorder **and** combine
-
-Show a different affordance depending on where within a target the pointer is (Android-launcher style: near an edge = reorder, over the middle = combine). Drive it from the live pointer.
-
-```tsx
-import { useGoonteh } from 'goonteh/solid'
-
-function Slot(props: { id: string }) {
-  const { active, point } = useGoonteh()
-  const mode = () => {
-    const p = point()
-    if (!p || active()?.kind !== 'card') return 'idle'
-    const r = slotEl.getBoundingClientRect()
-    const frac = (p.y - r.top) / r.height
-    return frac < 0.25 || frac > 0.75 ? 'reorder' : 'combine'
-  }
-  return (
-    <Drop accepts={(k) => k === 'card'} onDrop={(payload) => apply(mode(), payload)}>
-      <div ref={slotEl} classList={{ reorder: mode() === 'reorder', combine: mode() === 'combine' }}>
-        {props.id}
-      </div>
-    </Drop>
-  )
-}
-```
-
----
-
-## Reading the live drag
-
-`useGoonteh()` exposes reactive accessors for what's being dragged and where — use them for guides, snap lines, or cursor hints.
-
-```tsx
-const { dragging, active, point } = useGoonteh()
-
-// e.g. a drop guide that follows the pointer while a 'card' is in the air
-<Show when={dragging() && active()?.kind === 'card'}>
-  <div class="guide" style={{ left: `${point()?.x ?? 0}px` }} />
-</Show>
-```
-
----
-
-## Typed payloads — decode at the boundary
-
-Payloads cross an untyped boundary. Don't assert (`payload as Card`) — **decode** and handle the "not my shape" case. With Effect `Schema`:
-
-```ts
-import { Schema } from '@effect/schema'
-import { Option } from 'effect'
-
-const Card = Schema.Struct({ id: Schema.String })
-
-onDrop={(payload) => {
-  const card = Schema.decodeUnknownOption(Card)(payload)
-  if (Option.isNone(card)) return // not our shape — ignore
-  place(card.value)
-}}
-```
-
-Any validator works (zod, valibot, hand-written guard); the point is to decide explicitly at the drop.
-
----
-
-## Native (vanilla DOM)
-
-No framework — `goonteh/native` gives ghost-from-clone sugar over the core.
+One engine, a source, a target. The target's `accepts(kind)` filters what it takes; the innermost accepting
+zone wins.
 
 ```ts
 import { goonteh } from 'goonteh/native'
 
 const gloves = goonteh()
-gloves.grab(cardEl, { kind: 'card', payload: { id: cardEl.dataset.id } })
-gloves.drop(laneEl, {
+gloves.grab(card, { kind: 'card', payload: { id: 'a1' }, ghost: 'clone' })
+gloves.drop(lane, {
   accepts: (kind) => kind === 'card',
-  onDrop: (payload, kind, point) => console.log(payload, point),
+  onDrop: (payload, kind, point) => console.log('dropped', payload, 'at', point),
 })
 ```
 
-Opt-out zones still work: add `data-goonteh-nodrag` to any sub-element (e.g. a `<button>` inside the card) and its pointerdown won't start a drag.
+## Lift
+
+`lift` makes the source look genuinely picked up while you drag:
+
+- `'hole'` — hidden in place (`visibility:hidden`); the box keeps its space, so **no reflow**. Recommended.
+- `'collapse'` — removed from layout (`display:none`); siblings **close the gap**.
+- omit — the source stays fully visible (a copy-style drag, e.g. dragging out of a palette).
+
+```tsx
+<Grab kind="card" payload={id} lift="hole" ghost={() => <Preview id={id} />}>
+  <Card />
+</Grab>
+```
+
+## Crouch
+
+A touch hold-to-drag would swallow the platform's own long-press menu. So when a `Grab` has a menu to show,
+a hold first **crouches** — at `holdDelay` the weight is taken but nothing is lifted. That's your cue to pop a
+context menu (exactly like long-pressing an app icon). From there a **move** lifts (drag begins, `onLift`
+fires — dismiss the menu); a **release** keeps the menu up.
+
+```ts
+gloves.grab(clip, {
+  kind: 'clip',
+  payload: id,
+  lift: 'hole',
+  ghost: 'clone',
+  onCrouch: (point) => openMenu(point.x, point.y), // long-press → menu
+  onLift: () => closeMenu(),                        // then a move drags → dismiss it
+})
+```
+
+The same long-press means *open the menu* or *pick it up*, decided by whether you then move. Crouching exists
+**only** to make room for that menu — omit `onCrouch` and there's no crouch: the hold lifts straight away (it
+pops up in your hand), the plain hold-to-drag. You don't pause for a menu that isn't there.
+
+A generic "reveal whatever context menu wraps me" `onCrouch` is just a synthetic `contextmenu`:
+
+```ts
+onCrouch: (p) => document.elementFromPoint(p.x, p.y)?.dispatchEvent(
+  new MouseEvent('contextmenu', { bubbles: true, clientX: p.x, clientY: p.y }),
+),
+onLift: () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })),
+```
+
+## Touch
+
+A **mouse** drag begins as soon as the pointer crosses a ~5px threshold, so a plain click still reaches the
+child. On **touch/pen** it's hold-to-drag: press and hold still for `holdDelay` (default 250 ms) — a quick
+swipe stays a **scroll**, only a deliberate hold picks up. `touch-action` is left alone at rest and set to
+`none` only during an active drag, so the element scrolls normally until then.
+
+```ts
+goonteh({ threshold: 8, holdDelay: 300 }) // px to start a mouse drag · ms to hold on touch
+goonteh({ holdDelay: 0 })                 // opt out: move-to-drag immediately on touch too
+```
+
+## Live
+
+Read the live drag to preview reorder-vs-combine yourself — goonteh never reorders for you:
+
+```ts
+const gloves = goonteh()
+gloves.onChange(() => {
+  const a = gloves.active() // { kind, payload } | undefined
+  const p = gloves.point()  // { x, y } | undefined
+  if (a && p) previewDropAt(a, p)
+})
+```
+
+In a framework, the same state is a hook: `useGoonteh()` (Solid/React/Vue) or the `drag` store (Svelte).
+
+## Opt-out
+
+A pointerdown inside a `data-goonteh-nodrag` element never starts a drag — use it for resize handles, inline
+buttons, or a link inside a draggable card:
+
+```html
+<div> <!-- draggable card -->
+  <button data-goonteh-nodrag>⋯</button> <!-- clicking this never drags the card -->
+</div>
+```
+
+For a **drag handle** (only one grip starts the drag), put the `Grab` on the handle and the content outside it,
+or mark everything but the handle `data-goonteh-nodrag`. Nested grabs resolve innermost-wins.
+
+## Payloads
+
+`payload` is `unknown` on purpose — goonteh picks no error model. **Decode at the drop boundary** instead of
+asserting:
+
+```ts
+gloves.drop(lane, {
+  accepts: (kind) => kind === 'card',
+  onDrop: (payload) => {
+    const parsed = CardId.safeParse(payload) // zod / valibot / a plain guard / Effect Schema
+    if (parsed.success) moveCard(parsed.data)
+  },
+})
+```
+
+## Adapters
+
+### core / native
+
+```ts
+import { goonteh } from 'goonteh/native'
+const gloves = goonteh()
+const ungrab = gloves.grab(el, { kind: 'card', payload: id, ghost: 'clone' })
+const zone = gloves.drop(lane, { accepts: (k) => k === 'card', onDrop: (p) => move(p) })
+// later: ungrab(); zone.destroy(); gloves.destroy()
+```
+
+`ghost` takes a factory, an HTML string, or `'clone'` (clone the dragged element).
+
+### Solid
+
+```tsx
+import { GoontehProvider, Grab, Drop, useGoonteh } from 'goonteh/solid'
+
+<GoontehProvider>
+  <Grab kind="card" payload={id} lift="hole" ghost={() => <Preview id={id} />}>
+    <Card />
+  </Grab>
+  <Drop accepts={(k) => k === 'card'} onDrop={(p) => move(p)} activeClass="ring-2">
+    drop here
+  </Drop>
+</GoontehProvider>
+```
+
+### React
+
+```tsx
+import { GoontehProvider, Grab, Drop, useGoonteh } from 'goonteh/react'
+
+<GoontehProvider>
+  <Grab kind="card" payload={id} lift="hole" ghost={() => <Preview id={id} />}>
+    <Card />
+  </Grab>
+  <Drop accepts={(k) => k === 'card'} onDrop={(p) => move(p)} activeClass="ring-2">
+    drop here
+  </Drop>
+</GoontehProvider>
+```
+
+### Vue
+
+```vue
+<script setup>
+import { GoontehProvider, Grab, Drop } from 'goonteh/vue'
+</script>
+<template>
+  <GoontehProvider>
+    <Grab kind="card" :payload="id" lift="hole" :ghost="() => h(Preview, { id })">
+      <Card />
+    </Grab>
+    <Drop :accepts="(k) => k === 'card'" :on-drop="(p) => move(p)" active-class="ring-2">drop here</Drop>
+  </GoontehProvider>
+</template>
+```
+
+### Svelte
+
+The engine is created once and handed out as `grab` / `drop` **actions** plus a `drag` **store**:
+
+```svelte
+<script>
+  import { createGoonteh } from 'goonteh/svelte'
+  const { grab, drop, drag } = createGoonteh()
+</script>
+
+<div use:grab={{ kind: 'card', payload: id, ghost: makeGhost, lift: 'hole', onCrouch: openMenu, onLift: closeMenu }}>…</div>
+<div use:drop={{ accepts: (k) => k === 'card', onDrop: move, activeClass: 'ring-2' }}>drop here</div>
+{#if $drag.dragging}dragging {$drag.active?.kind}{/if}
+```
+
+### React Native (experimental)
+
+No DOM, so its own `PanResponder` engine — touch only, and outside the web-core guarantees (no crouch). Same
+`<GoontehProvider>` / `<Grab>` / `<Drop>` shape; the provider also renders the ghost overlay.
+
+```tsx
+import { GoontehProvider, Grab, Drop } from 'goonteh/react-native'
+
+<GoontehProvider>
+  <Grab kind="card" payload={id} ghost={() => <Preview id={id} />}><Card /></Grab>
+  <Drop accepts={(k) => k === 'card'} onDrop={(p) => move(p)}><Lane /></Drop>
+</GoontehProvider>
+```
+
+## CDN
+
+Zero-dep and framework-free, so one `<script>` grips anywhere — even a Google Apps Script `HtmlService`
+iframe with no bundler:
+
+```html
+<script src="https://unpkg.com/goonteh@1.0.2"></script>
+<script>
+  const gloves = goonteh()
+  gloves.grab(document.getElementById('card'), { kind: 'card', payload: { id: 'a1' } })
+  gloves.drop(document.getElementById('lane'), {
+    accepts: (kind) => kind === 'card',
+    onDrop: (payload) => console.log('dropped', payload),
+  })
+</script>
+```

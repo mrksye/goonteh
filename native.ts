@@ -17,6 +17,10 @@ export type NativeGrabOptions = {
   disabled?: () => boolean
   /** 'hole' (blank gap, no reflow) or 'collapse' (siblings close up); omit to leave in place. */
   lift?: 'hole' | 'collapse'
+  /** Touch: a still hold has crouched at this point (pop a context menu here). Move → drag; release → menu stays. */
+  onCrouch?: (point: Point) => void
+  /** The drag began (mouse move, or a move after a touch crouch) — dismiss the menu here. */
+  onLift?: () => void
 }
 
 export type Goonteh = {
@@ -41,6 +45,8 @@ export function goonteh(config?: GoontehConfig): Goonteh {
         kind: opts.kind,
         disabled: opts.disabled,
         lift: opts.lift,
+        onCrouch: opts.onCrouch,
+        onLift: opts.onLift,
         ghost: () => makeGhost(el, opts.ghost),
       })
     },

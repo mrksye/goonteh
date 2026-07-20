@@ -65,6 +65,10 @@ export const Grab = defineComponent({
     disabled: { type: Boolean, default: false },
     /** 'hole' (blank gap, no reflow) or 'collapse' (siblings close up); omit to leave in place. */
     lift: { type: String as PropType<'hole' | 'collapse'>, default: undefined },
+    /** Touch: a still hold has crouched at this point (pop a context menu here). Move → drag; release → menu stays. */
+    onCrouch: { type: Function as PropType<(point: Point) => void>, default: undefined },
+    /** The drag began (mouse move, or a move after a touch crouch) — dismiss the menu here. */
+    onLift: { type: Function as PropType<() => void>, default: undefined },
   },
   setup(props, { slots }) {
     const { core } = useCtx()
@@ -78,6 +82,8 @@ export const Grab = defineComponent({
         kind: props.kind,
         disabled: () => props.disabled,
         lift: props.lift,
+        onCrouch: props.onCrouch ? (point) => props.onCrouch!(point) : undefined,
+        onLift: () => props.onLift?.(),
         ghost: () => {
           const container = document.createElement('div')
           render(props.ghost(), container)
@@ -93,7 +99,7 @@ export const Grab = defineComponent({
       })
     })
     onBeforeUnmount(() => cleanup?.())
-    return () => h('div', { ref: el, style: { touchAction: 'none' } }, slots.default?.())
+    return () => h('div', { ref: el }, slots.default?.())
   },
 })
 

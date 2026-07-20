@@ -30,6 +30,10 @@ export type GrabParams = {
   disabled?: boolean
   /** 'hole' (blank gap, no reflow) or 'collapse' (siblings close up); omit to leave in place. */
   lift?: 'hole' | 'collapse'
+  /** Touch: a still hold has crouched at this point (pop a context menu here). Move → drag; release → menu stays. */
+  onCrouch?: (point: Point) => void
+  /** The drag began (mouse move, or a move after a touch crouch) — dismiss the menu here. */
+  onLift?: () => void
 }
 export type DropParams = {
   accepts: (kind: string, payload: unknown) => boolean
@@ -45,12 +49,13 @@ const KEY = Symbol('goonteh')
 
 const grabAction = (core: GoontehCore): Action<GrabParams> => (el, params) => {
   let p = params
-  el.style.touchAction = 'none'
   const cleanup = core.draggable(el, {
     payload: () => p.payload,
     kind: p.kind,
     disabled: () => !!p.disabled,
     lift: p.lift,
+    onCrouch: p.onCrouch ? (point) => p.onCrouch!(point) : undefined,
+    onLift: () => p.onLift?.(),
     ghost: () => p.ghost(),
   })
   return {
