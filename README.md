@@ -37,7 +37,7 @@ The whole point of gloves is that the grip feels right on every surface:
 No build step, no `npm install`, no bundler. The framework-free core ships as a single self-contained IIFE that puts a `goonteh` global on `window` — one `<script>` and you're gripping:
 
 ```html
-<script src="https://unpkg.com/goonteh@1.0.2"></script>
+<script src="https://unpkg.com/goonteh@1.0.3"></script>
 <script>
   const gloves = goonteh()
   gloves.grab(document.getElementById('card'), { kind: 'card', payload: { id: 'a1' } })

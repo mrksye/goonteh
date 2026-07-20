@@ -228,7 +228,7 @@ Zero-dep and framework-free, so one `<script>` grips anywhere — even a Google 
 iframe with no bundler:
 
 ```html
-<script src="https://unpkg.com/goonteh@1.0.2"></script>
+<script src="https://unpkg.com/goonteh@1.0.3"></script>
 <script>
   const gloves = goonteh()
   gloves.grab(document.getElementById('card'), { kind: 'card', payload: { id: 'a1' } })

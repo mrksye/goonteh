@@ -279,6 +279,12 @@ export function createGoontehCore(config: GoontehConfig = {}): GoontehCore {
         const holdTolerance = Math.max(threshold, 10)
         let holdTimer: ReturnType<typeof setTimeout> | undefined
         let crouched = false // touch: held long enough that onCrouch fired; the next move lifts (drags)
+        // Touch/pen: while a finger presses and holds, the browser wants to fire its OWN long-press context
+        // menu — which pops a native menu over the app's and hands the gesture to the browser. Suppress the
+        // native contextmenu for the life of this press. Only `isTrusted` (real browser) events, so an app's
+        // synthetic contextmenu (e.g. what a crouch dispatches to open its own menu) still gets through. A
+        // mouse right-click never reaches here (button != 0 returned above), so desktop right-click is untouched.
+        const suppressNativeContextMenu = e.pointerType !== 'mouse' ? (ev: Event): void => { if (ev.isTrusted) ev.preventDefault() } : undefined
         const disarm = () => {
           if (holdTimer) clearTimeout(holdTimer)
           holdTimer = undefined
@@ -310,6 +316,21 @@ export function createGoontehCore(config: GoontehConfig = {}): GoontehCore {
           if (ev.pointerId === id) disarm() // released or cancelled before the drag began (a crouch's menu stays)
         }
         armedCleanup = disarm
+        // Tie the suppressor to the WHOLE press (down → up/cancel), not to disarm. A no-crouch hold-to-drag
+        // begins (and disarms) at holdDelay, but the browser's long-press context menu can fire later — so
+        // removing it at disarm would leave the native menu to slip through on the plain draggables.
+        if (suppressNativeContextMenu) {
+          const suppress = suppressNativeContextMenu
+          window.addEventListener('contextmenu', suppress)
+          const endSuppress = (ev: PointerEvent): void => {
+            if (ev.pointerId !== id) return
+            window.removeEventListener('contextmenu', suppress)
+            window.removeEventListener('pointerup', endSuppress)
+            window.removeEventListener('pointercancel', endSuppress)
+          }
+          window.addEventListener('pointerup', endSuppress)
+          window.addEventListener('pointercancel', endSuppress)
+        }
         if (holdToDrag) {
           holdTimer = setTimeout(() => {
             holdTimer = undefined
